@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Support — KPI Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0a1628;
+  --card: #0f2040;
+  --card-border: #1a3060;
+  --card-hover: #152848;
+  --text: #eaeaf2;
+  --text-muted: #7a8a9a;
+  --text-dim: #4a5a6a;
+  --green: #6abf69;
+  --green-bg: #0a2010;
+  --amber: #d4a038;
+  --amber-bg: #2a1e08;
+  --red: #c85a5a;
+  --red-bg: #2a0808;
+  --blue: #5a9fd4;
+  --bar-track: #0a1e38;
+  --divider: #1a3060;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  padding: 28px 32px;
+}
+
+.dashboard { max-width: 1100px; margin: 0 auto; }
+
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.header-left {}
+.header-title { font-size: 22px; font-weight: 500; color: var(--text); letter-spacing: -0.3px; }
+.header-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.badge-live {
+  background: var(--green-bg);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid #1a4a1a;
+}
+.last-update { font-size: 11px; color: var(--text-dim); }
+
+/* KPI ROW */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  transition: background 0.2s;
+}
+.kpi-card:hover { background: var(--card-hover); }
+.kpi-label { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-weight: 400; letter-spacing: 0.3px; text-transform: uppercase; }
+.kpi-value { font-size: 38px; font-weight: 300; color: var(--text); line-height: 1; }
+.kpi-value .unit { font-size: 18px; color: var(--text-muted); margin-left: 2px; }
+.kpi-target { font-size: 12px; margin: 10px 0 8px; display: flex; align-items: center; gap: 4px; }
+.kpi-target.ok { color: var(--green); }
+.kpi-target.warn { color: var(--amber); }
+.bar-track { height: 5px; border-radius: 3px; background: var(--bar-track); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+/* MID GRID */
+.mid-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.card-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 16px; }
+
+/* HORIZONTAL BARS */
+.hbar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hbar-row:last-child { margin-bottom: 0; }
+.hbar-label { font-size: 12px; color: var(--text-muted); min-width: 80px; text-align: right; }
+.hbar-track { flex: 1; height: 28px; background: var(--bar-track); border-radius: 6px; overflow: hidden; position: relative; }
+.hbar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 500; color: var(--text); transition: width 0.8s ease; min-width: 28px; }
+
+/* BOTTOM GRID */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* GAUGE */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
+.gauge-svg { width: 200px; height: 110px; }
+.gauge-labels { display: flex; justify-content: space-between; width: 200px; margin-top: 4px; }
+.gauge-label-val { font-size: 11px; color: var(--text-dim); }
+.gauge-center-val { font-size: 28px; font-weight: 300; color: var(--text); text-align: center; margin-top: -8px; }
+.gauge-center-sub { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 2px; }
+
+/* SCHULUNGEN INPUT */
+.schulungen-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  justify-content: center;
+}
+.schulungen-input-row label { font-size: 12px; color: var(--text-muted); }
+.schulungen-input-row input[type=range] {
+  -webkit-appearance: none;
+  width: 120px;
+  height: 4px;
+  background: var(--bar-track);
+  border-radius: 2px;
+  outline: none;
+}
+.schulungen-input-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: pointer;
+}
+.schulungen-input-row .sch-count { font-size: 14px; font-weight: 500; color: var(--text); min-width: 40px; }
+
+/* SCORECARD */
+.sc-row {
+  display: flex;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.sc-row:last-of-type { border-bottom: none; }
+.sc-name { flex: 1; font-size: 13px; color: var(--text); }
+.sc-weight { font-size: 12px; color: var(--text-muted); min-width: 90px; text-align: right; margin-right: 14px; }
+.sc-result { font-size: 13px; font-weight: 500; min-width: 56px; text-align: right; }
+.sc-result.ok { color: var(--green); }
+.sc-result.warn { color: var(--amber); }
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--card-border);
+}
+.total-label { font-size: 15px; font-weight: 500; color: var(--text); }
+.total-score { font-size: 30px; font-weight: 300; }
+.total-score.ok { color: var(--green); }
+.total-score.warn { color: var(--amber); }
+.total-max { font-size: 18px; color: var(--text-dim); }
+
+/* PATCH COMPLIANCE MANUAL */
+.patch-manual { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.patch-manual label { font-size: 12px; color: var(--text-muted); }
+.patch-manual input[type=number] {
+  width: 64px;
+  background: var(--bar-track);
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 4px 8px;
+  outline: none;
+  font-family: inherit;
+}
+
+/* LOADING */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 99;
+  transition: opacity 0.4s;
+}
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+.loading-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--card-border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.loading-text { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ERROR */
+.error-banner {
+  background: var(--red-bg);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--red);
+  margin-bottom: 14px;
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .kpi-row, .mid-grid, .bottom-grid { grid-template-columns: 1fr; }
+  body { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loader">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Daten werden geladen…</div>
+</div>
+
+<div class="dashboard">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title">IT Support — KPI Dashboard</div>
+      <div class="header-sub">HASYTEC Technology GmbH · <span id="period-label">–</span></div>
+    </div>
+    <div class="header-right">
+      <span class="last-update" id="last-update"></span>
+      <span class="badge-live">Live</span>
+    </div>
+  </div>
+
+  <div class="error-banner" id="error-banner"></div>
+
+  <!-- ROW 1: KPI CARDS -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">First Response Time</div>
+      <div class="kpi-value" id="frt-val">–<span class="unit">h</span></div>
+      <div class="kpi-target ok" id="frt-target">Ziel: ≤ 8h</div>
+      <div class="bar-track"><div class="bar-fill" id="frt-bar" style="width:0%;background:var(--green)"></div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Resolution Time</div>
+      <div class="kpi-value" id="rt-val">–<span class="unit">h</span></div>
+      <div class="kpi-target ok" id="rt-target">Ziel: ≤ 24h</div>
+      <div class="bar-track"><div class="bar-fill" id="rt-bar" style="width:0%;background:var(--green)"></div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Patch Compliance</div>
+      <div class="kpi-value" id="pc-val">–<span class="unit">%</span></div>
+      <div class="kpi-target" id="pc-target">Ziel: ≥ 95%</div>
+      <div class="bar-track"><div class="bar-fill" id="pc-bar" style="width:0%"></div></div>
+      <div class="patch-manual">
+        <label>Manuell:</label>
+        <input type="number" id="pc-input" min="0" max="100" value="97">
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: STATUS + PRIORITY -->
+  <div class="mid-grid">
+    <div class="card">
+      <div class="card-title">Tickets nach Status</div>
+      <div class="hbar-row"><span class="hbar-label">New</span><div class="hbar-track"><div class="hbar-fill" id="s-new" style="width:0%;background:#d4a038"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">In Progress</span><div class="hbar-track"><div class="hbar-fill" id="s-ip" style="width:0%;background:#c8c4a0"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">Waiting</span><div class="hbar-track"><div class="hbar-fill" id="s-wait" style="width:0%;background:#5a8aaa"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">Resolved</span><div class="hbar-track"><div class="hbar-fill" id="s-res" style="width:0%;background:#8ab87a"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">Closed</span><div class="hbar-track"><div class="hbar-fill" id="s-cl" style="width:0%;background:#6abf69"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tickets nach Priorität</div>
+      <div class="hbar-row"><span class="hbar-label">Critical</span><div class="hbar-track"><div class="hbar-fill" id="p-crit" style="width:0%;background:#c85a5a"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">High</span><div class="hbar-track"><div class="hbar-fill" id="p-high" style="width:0%;background:#d4a038"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">Medium</span><div class="hbar-track"><div class="hbar-fill" id="p-med" style="width:0%;background:#8ab87a"></div></div></div>
+      <div class="hbar-row"><span class="hbar-label">Low</span><div class="hbar-track"><div class="hbar-fill" id="p-low" style="width:0%;background:#5a9a8a"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: GAUGE + SCORECARD -->
+  <div class="bottom-grid">
+    <div class="card">
+      <div class="card-title">Schulungen</div>
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 200 110">
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#0a1e38" stroke-width="16" stroke-linecap="round"/>
+          <path id="gauge-arc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#6abf69" stroke-width="16" stroke-linecap="round"
+            stroke-dasharray="251.2" stroke-dashoffset="0"/>
+          <line id="gauge-needle" x1="100" y1="100" x2="100" y2="28" stroke="#eaeaf2" stroke-width="2" stroke-linecap="round"
+            transform="rotate(0, 100, 100)"/>
+          <circle cx="100" cy="100" r="4" fill="#eaeaf2"/>
+        </svg>
+        <div class="gauge-labels">
+          <span class="gauge-label-val">0</span>
+          <span class="gauge-label-val">18</span>
+        </div>
+        <div class="gauge-center-val" id="gauge-val">18</div>
+        <div class="gauge-center-sub" id="gauge-sub">von 18 Schulungen erledigt</div>
+      </div>
+      <div class="schulungen-input-row">
+        <label>Erledigt:</label>
+        <input type="range" id="sch-slider" min="0" max="18" value="18">
+        <span class="sch-count" id="sch-count">18 / 18</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">KPI-Bewertung (gewichtet)</div>
+      <div class="sc-row">
+        <span class="sc-name">First Response Time (Median ≤ 8h)</span>
+        <span class="sc-weight">Gewicht 0,2</span>
+        <span class="sc-result" id="sc-frt">–</span>
+      </div>
+      <div class="sc-row">
+        <span class="sc-name">Resolution Time (Median ≤ 24h)</span>
+        <span class="sc-weight">Gewicht 0,3</span>
+        <span class="sc-result" id="sc-rt">–</span>
+      </div>
+      <div class="sc-row">
+        <span class="sc-name">Patch Compliance (≥ 95%)</span>
+        <span class="sc-weight">Gewicht 0,3</span>
+        <span class="sc-result" id="sc-pc">–</span>
+      </div>
+      <div class="sc-row">
+        <span class="sc-name">Keine überfälligen Schulungen</span>
+        <span class="sc-weight">Gewicht 0,2</span>
+        <span class="sc-result" id="sc-tr">–</span>
+      </div>
+      <div class="total-row">
+        <span class="total-label">Overall Objective Achievement</span>
+        <span>
+          <span class="total-score" id="total-score">–</span>
+          <span class="total-max"> / 1,00</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+var SITE      = 'https://hasytecag.sharepoint.com/sites/HITS';
+var LIST_ID   = '42919689-29ab-4834-8034-70ac167a396d';
+var API_URL   = SITE + '/_api/lists/getbyid(\'' + LIST_ID + '\')/items' +
+                '?$select=field_5,field_8,field_13,field_14,field_9' +
+                '&$top=5000' +
+                '&$orderby=field_9 desc';
+var REFRESH_MS = 5 * 60 * 1000; // 5 Minuten
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+var schulungen = parseInt(localStorage.getItem('hits_schulungen') || '18');
+var patchVal   = parseInt(localStorage.getItem('hits_patch')      || '97');
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function median(arr) {
+  var filtered = arr.filter(function(x) { return x != null && x > 0 && x <= 2880; });
+  if (!filtered.length) return null;
+  filtered.sort(function(a,b){ return a-b; });
+  var mid = Math.floor(filtered.length / 2);
+  return filtered.length % 2 ? filtered[mid] : (filtered[mid-1] + filtered[mid]) / 2;
+}
+
+function fmt(n) {
+  if (n == null) return '–';
+  return n.toFixed(2).replace('.', ',');
+}
+
+function setBar(id, value, max, color) {
+  var el = document.getElementById(id);
+  var pct = max > 0 ? Math.min(100, Math.max(value > 0 ? 6 : 0, value / max * 100)) : 0;
+  el.style.width = pct.toFixed(0) + '%';
+  el.style.background = color || 'var(--blue)';
+  el.textContent = value;
+}
+
+// ─── GAUGE ───────────────────────────────────────────────────────────────────
+function updateGauge(val, max) {
+  var pct = Math.min(1, val / max);
+  // Arc: full arc = 251.2 (semicircle πr = π×80)
+  var arcLen = 251.2;
+  var offset = arcLen * (1 - pct);
+  document.getElementById('gauge-arc').setAttribute('stroke-dashoffset', offset.toFixed(1));
+  document.getElementById('gauge-arc').setAttribute('stroke', pct >= 1 ? 'var(--green)' : pct >= 0.7 ? 'var(--amber)' : 'var(--red)');
+  // Needle: -90° = left (0), 0° = top (0.5), +90° = right (1)
+  var angle = -90 + pct * 180;
+  document.getElementById('gauge-needle').setAttribute('transform', 'rotate(' + angle.toFixed(1) + ', 100, 100)');
+  document.getElementById('gauge-val').textContent = val;
+  document.getElementById('gauge-sub').textContent = 'von ' + max + ' Schulungen erledigt';
+  document.getElementById('sch-count').textContent = val + ' / ' + max;
+  document.getElementById('sch-slider').value = val;
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderData(items) {
+  // KPI calculations
+  var frtVals = items.map(function(i){ return i.field_13; }).filter(Boolean);
+  var rtVals  = items.map(function(i){ return i.field_14; }).filter(Boolean);
+
+  var frtMedianMin = median(frtVals);
+  var rtMedianMin  = median(rtVals);
+  var frtH = frtMedianMin != null ? frtMedianMin / 60 : null;
+  var rtH  = rtMedianMin  != null ? rtMedianMin  / 60 : null;
+
+  var frtOk = frtH != null && frtH <= 8;
+  var rtOk  = rtH  != null && rtH  <= 24;
+  var pcOk  = patchVal >= 95;
+  var trOk  = schulungen >= 18;
+
+  // FRT card
+  document.getElementById('frt-val').innerHTML = (frtH != null ? fmt(frtH) : '–') + '<span class="unit">h</span>';
+  var frtTgt = document.getElementById('frt-target');
+  frtTgt.className = 'kpi-target ' + (frtOk ? 'ok' : 'warn');
+  frtTgt.textContent = (frtOk ? '✓' : '⚠') + ' Ziel: ≤ 8h';
+  var frtBar = document.getElementById('frt-bar');
+  frtBar.style.width  = frtH != null ? Math.min(100, frtH / 8 * 100).toFixed(0) + '%' : '0%';
+  frtBar.style.background = frtOk ? 'var(--green)' : 'var(--amber)';
+
+  // RT card
+  document.getElementById('rt-val').innerHTML = (rtH != null ? fmt(rtH) : '–') + '<span class="unit">h</span>';
+  var rtTgt = document.getElementById('rt-target');
+  rtTgt.className = 'kpi-target ' + (rtOk ? 'ok' : 'warn');
+  rtTgt.textContent = (rtOk ? '✓' : '⚠') + ' Ziel: ≤ 24h';
+  var rtBar = document.getElementById('rt-bar');
+  rtBar.style.width  = rtH != null ? Math.min(100, rtH / 24 * 100).toFixed(0) + '%' : '0%';
+  rtBar.style.background = rtOk ? 'var(--green)' : 'var(--amber)';
+
+  // Patch card
+  document.getElementById('pc-val').innerHTML = patchVal + '<span class="unit">%</span>';
+  var pcTgt = document.getElementById('pc-target');
+  pcTgt.className = 'kpi-target ' + (pcOk ? 'ok' : 'warn');
+  pcTgt.textContent = (pcOk ? '✓' : '⚠') + ' Ziel: ≥ 95%';
+  var pcBar = document.getElementById('pc-bar');
+  pcBar.style.width = patchVal + '%';
+  pcBar.style.background = pcOk ? 'var(--green)' : 'var(--amber)';
+
+  // Status counts
+  var statusCount = { New:0, 'In Progress':0, Waiting:0, Resolved:0, Closed:0 };
+  var prioCount   = { Critical:0, High:0, Medium:0, Low:0 };
+  items.forEach(function(i) {
+    if (i.field_8 in statusCount) statusCount[i.field_8]++;
+    if (i.field_5 in prioCount)   prioCount[i.field_5]++;
+  });
+
+  var totalS = items.length || 1;
+  var totalP = Object.values(prioCount).reduce(function(a,b){return a+b;},0) || 1;
+
+  setBar('s-new',  statusCount['New'],         totalS, '#d4a038');
+  setBar('s-ip',   statusCount['In Progress'], totalS, '#c8c4a0');
+  setBar('s-wait', statusCount['Waiting'],     totalS, '#5a8aaa');
+  setBar('s-res',  statusCount['Resolved'],    totalS, '#8ab87a');
+  setBar('s-cl',   statusCount['Closed'],      totalS, '#6abf69');
+
+  setBar('p-crit', prioCount['Critical'], totalP, '#c85a5a');
+  setBar('p-high', prioCount['High'],     totalP, '#d4a038');
+  setBar('p-med',  prioCount['Medium'],   totalP, '#8ab87a');
+  setBar('p-low',  prioCount['Low'],      totalP, '#5a9a8a');
+
+  // Gauge
+  updateGauge(schulungen, 18);
+
+  // Scorecard
+  var frtScore = frtOk ? 0.20 : 0;
+  var rtScore  = rtOk  ? 0.30 : 0;
+  var pcScore  = pcOk  ? 0.30 : 0;
+  var trScore  = trOk  ? 0.20 : 0;
+  var total    = frtScore + rtScore + pcScore + trScore;
+
+  function sc(id, ok, score) {
+    var el = document.getElementById(id);
+    el.className = 'sc-result ' + (ok ? 'ok' : 'warn');
+    el.textContent = (ok ? '✓ ' : '⚠ ') + score.toFixed(2).replace('.', ',');
+  }
+  sc('sc-frt', frtOk, frtScore);
+  sc('sc-rt',  rtOk,  rtScore);
+  sc('sc-pc',  pcOk,  pcScore);
+  sc('sc-tr',  trOk,  trScore);
+
+  var totalEl = document.getElementById('total-score');
+  totalEl.textContent = total.toFixed(2).replace('.', ',');
+  totalEl.className   = 'total-score ' + (total >= 0.8 ? 'ok' : 'warn');
+
+  // Period label
+  if (items.length) {
+    var dates = items.map(function(i){ return new Date(i.field_9); }).filter(function(d){ return !isNaN(d); });
+    if (dates.length) {
+      var minD = new Date(Math.min.apply(null, dates));
+      var maxD = new Date(Math.max.apply(null, dates));
+      document.getElementById('period-label').textContent =
+        minD.toLocaleDateString('de-DE') + ' – ' + maxD.toLocaleDateString('de-DE');
+    }
+  }
+
+  // Last update
+  document.getElementById('last-update').textContent =
+    'Aktualisiert: ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
+}
+
+// ─── FETCH ───────────────────────────────────────────────────────────────────
+function loadData() {
+  fetch(API_URL, {
+    headers: { 'Accept': 'application/json;odata=nometadata' },
+    credentials: 'include'
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' — Bitte Seite in SharePoint öffnen');
+    return r.json();
+  })
+  .then(function(data) {
+    var items = data.value || [];
+    document.getElementById('error-banner').style.display = 'none';
+    renderData(items);
+    document.getElementById('loader').classList.add('hidden');
+  })
+  .catch(function(err) {
+    var banner = document.getElementById('error-banner');
+    banner.style.display = 'block';
+    banner.textContent   = '⚠ Fehler beim Laden: ' + err.message + 
+      ' — Diese Datei muss über SharePoint geöffnet werden (nicht lokal).';
+    document.getElementById('loader').classList.add('hidden');
+  });
+}
+
+// ─── CONTROLS ────────────────────────────────────────────────────────────────
+document.getElementById('sch-slider').addEventListener('input', function() {
+  schulungen = parseInt(this.value);
+  localStorage.setItem('hits_schulungen', schulungen);
+  loadData();
+});
+
+document.getElementById('pc-input').addEventListener('change', function() {
+  patchVal = parseInt(this.value) || 0;
+  localStorage.setItem('hits_patch', patchVal);
+  loadData();
+});
+
+// Init saved values
+document.getElementById('pc-input').value   = patchVal;
+document.getElementById('sch-slider').value = schulungen;
+
+// ─── START ───────────────────────────────────────────────────────────────────
+loadData();
+setInterval(loadData, REFRESH_MS);
+</script>
+</body>
+</html>
