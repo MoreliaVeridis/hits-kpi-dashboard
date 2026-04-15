@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HASYTEC — KPI Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg:#001224;--card:#001e38;--cb:#003060;--ch:#002448;
+  --text:#e8eef6;--tm:#7a9ab8;--td:#3a5a78;
+  --green:#5ab878;--amber:#d4a038;--red:#c8374a;
+  --hr:#a32d2d;--hb:#1a4a8a;--bt:#001830;--div:#003060;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans','Segoe UI',sans-serif;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{background:#001a33;border-bottom:3px solid var(--hr);padding:11px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.tb-brand{display:flex;align-items:center;gap:12px;}
+.tb-logo{font-size:17px;font-weight:600;color:#fff;letter-spacing:1px;}
+.tb-logo span{color:var(--hr);}
+.tb-div{width:1px;height:18px;background:#003060;}
+.tb-title{font-size:12px;color:var(--tm);}
+.tb-right{display:flex;align-items:center;gap:8px;}
+.badge-live{background:#001a0e;color:var(--green);font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;border:1px solid #1a4a1a;}
+.badge-user{background:var(--card);color:var(--tm);font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--cb);}
+.btn-lang{background:var(--card);border:1px solid var(--cb);color:var(--tm);font-size:11px;padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:500;}
+.btn-lang:hover,.btn-lang.active{background:var(--hb);color:#fff;border-color:var(--hb);}
+.btn-logout{background:none;border:1px solid var(--cb);color:var(--tm);font-size:11px;padding:3px 9px;border-radius:6px;cursor:pointer;font-family:inherit;}
+.btn-logout:hover{border-color:var(--hr);color:var(--hr);}
+.btn-back{background:var(--card);border:1px solid var(--cb);color:var(--tm);font-size:12px;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;}
+.btn-back:hover{border-color:var(--hb);color:var(--text);}
+
+/* LOGIN */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;gap:20px;}
+.login-logo{font-size:36px;font-weight:600;color:#fff;letter-spacing:2px;text-align:center;}
+.login-logo span{color:var(--hr);}
+.login-sub{font-size:13px;color:var(--tm);text-align:center;}
+.login-card{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:28px 36px;text-align:center;width:300px;}
+.login-card-title{font-size:15px;font-weight:500;margin-bottom:5px;}
+.login-card-sub{font-size:12px;color:var(--tm);margin-bottom:16px;}
+.btn-login{background:var(--hb);color:#fff;border:none;font-size:14px;font-weight:500;padding:11px 28px;border-radius:8px;cursor:pointer;font-family:inherit;width:100%;}
+
+/* MAIN PAGE */
+.main-wrap{max-width:1160px;margin:0 auto;padding:24px 28px;}
+.main-header{margin-bottom:22px;}
+.main-title{font-size:20px;font-weight:500;}
+.main-sub{font-size:13px;color:var(--tm);margin-top:3px;}
+.dept-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.dept-card{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.dept-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.dept-card.score-ok::before{background:var(--green);}
+.dept-card.score-warn::before{background:var(--amber);}
+.dept-card.score-bad::before{background:var(--red);}
+.dept-card.score-live::before{background:var(--hb);}
+.dept-card:hover{background:var(--ch);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.dept-icon{font-size:28px;margin-bottom:10px;}
+.dept-name{font-size:14px;font-weight:500;margin-bottom:4px;}
+.dept-sub{font-size:11px;color:var(--tm);margin-bottom:14px;}
+.dept-score-wrap{display:flex;align-items:baseline;gap:4px;margin-bottom:8px;}
+.dept-score{font-size:30px;font-weight:300;}
+.dept-score.ok{color:var(--green);}
+.dept-score.warn{color:var(--amber);}
+.dept-score.bad{color:var(--red);}
+.dept-score-max{font-size:14px;color:var(--td);}
+.dept-bar-track{height:4px;border-radius:2px;background:var(--bt);overflow:hidden;margin-bottom:10px;}
+.dept-bar-fill{height:100%;border-radius:2px;transition:width 1s ease;}
+.dept-employees{font-size:11px;color:var(--tm);}
+.dept-badge-live{position:absolute;top:14px;right:14px;background:#001a0e;color:var(--green);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid #1a4a1a;}
+.dept-badge-demo{position:absolute;top:14px;right:14px;background:#001830;color:var(--tm);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--cb);}
+
+/* DEPT DETAIL PAGE */
+.detail-wrap{max-width:1160px;margin:0 auto;padding:20px 28px;}
+.detail-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+.detail-icon{font-size:32px;}
+.detail-title{font-size:20px;font-weight:500;}
+.detail-sub{font-size:12px;color:var(--tm);margin-top:2px;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+.kpi-card{background:var(--card);border:1px solid var(--cb);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--hb);}
+.kpi-card.ok::before{background:var(--green);}
+.kpi-card.warn::before{background:var(--amber);}
+.kpi-card.bad::before{background:var(--red);}
+.kpi-lbl{font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.kpi-val{font-size:26px;font-weight:300;line-height:1.1;}
+.kpi-tgt{font-size:11px;margin:8px 0 6px;}
+.kpi-tgt.ok{color:var(--green);}
+.kpi-tgt.warn{color:var(--amber);}
+.kpi-tgt.bad{color:var(--red);}
+.bar-t{height:4px;border-radius:2px;background:var(--bt);overflow:hidden;}
+.bar-f{height:100%;border-radius:2px;transition:width 0.8s ease;}
+.mid-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.card{background:var(--card);border:1px solid var(--cb);border-radius:10px;padding:18px 20px;}
+.card-title{font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;}
+.hbar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.hbar-row:last-child{margin-bottom:0;}
+.hbar-lbl{font-size:11px;color:var(--tm);min-width:72px;text-align:right;}
+.hbar-t{flex:1;height:24px;background:var(--bt);border-radius:5px;overflow:hidden;}
+.hbar-f{height:100%;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:500;color:#fff;transition:width 0.7s ease;min-width:24px;}
+
+/* SCORECARD */
+.scorecard-row{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--div);}
+.scorecard-row:last-of-type{border-bottom:none;}
+.sc-name{flex:1;font-size:12px;}
+.sc-w{font-size:11px;color:var(--tm);min-width:76px;text-align:right;margin-right:10px;}
+.sc-r{font-size:11px;font-weight:500;min-width:48px;text-align:right;}
+.sc-r.ok{color:var(--green);}
+.sc-r.warn{color:var(--amber);}
+.total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:2px solid var(--hb);}
+.total-lbl{font-size:13px;font-weight:500;}
+.total-val{font-size:26px;font-weight:300;}
+.total-val.ok{color:var(--green);}
+.total-val.warn{color:var(--amber);}
+.total-max{font-size:14px;color:var(--td);}
+
+/* EMPLOYEE TABLE */
+.emp-section{margin-top:14px;}
+.emp-title{font-size:10px;font-weight:600;color:var(--tm);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;}
+.emp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.emp-card{background:var(--card);border:1px solid var(--cb);border-radius:10px;padding:14px 16px;}
+.emp-name{font-size:13px;font-weight:500;margin-bottom:3px;}
+.emp-role{font-size:11px;color:var(--tm);margin-bottom:10px;}
+.emp-kpi-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.emp-kpi-row:last-child{margin-bottom:0;}
+.emp-kpi-lbl{font-size:11px;color:var(--tm);}
+.emp-kpi-val{font-size:11px;font-weight:500;}
+.emp-kpi-val.ok{color:var(--green);}
+.emp-kpi-val.warn{color:var(--amber);}
+.emp-kpi-val.bad{color:var(--red);}
+.emp-score{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--div);}
+.emp-score-lbl{font-size:11px;color:var(--tm);}
+.emp-score-val{font-size:16px;font-weight:500;}
+.emp-score-val.ok{color:var(--green);}
+.emp-score-val.warn{color:var(--amber);}
+.emp-score-val.bad{color:var(--red);}
+
+/* SCHULUNGEN GAUGE */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:4px 0;}
+.gauge-svg{width:160px;height:88px;}
+.gauge-cv{font-size:22px;font-weight:300;text-align:center;margin-top:2px;}
+.gauge-cs{font-size:10px;color:var(--tm);text-align:center;}
+.sch-row{display:flex;align-items:center;gap:10px;margin-top:10px;justify-content:center;}
+.sch-row label{font-size:11px;color:var(--tm);}
+.sch-row input[type=range]{-webkit-appearance:none;width:110px;height:4px;background:var(--bt);border-radius:2px;outline:none;}
+.sch-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--hb);cursor:pointer;}
+.sch-count{font-size:12px;font-weight:500;}
+.pc-input-row{display:flex;align-items:center;gap:8px;margin-top:8px;justify-content:center;}
+.pc-input-row label{font-size:11px;color:var(--tm);}
+.pc-input-row input[type=number]{width:54px;background:var(--bt);border:1px solid var(--cb);border-radius:5px;color:var(--text);font-size:12px;padding:3px 7px;outline:none;font-family:inherit;}
+
+/* DATE FILTER */
+.date-filter{display:flex;align-items:center;gap:8px;margin-bottom:14px;background:var(--card);border:1px solid var(--cb);border-radius:8px;padding:8px 14px;flex-wrap:wrap;}
+.date-filter label{font-size:11px;color:var(--tm);}
+.date-filter input[type=date]{background:var(--bt);border:1px solid var(--cb);border-radius:5px;color:var(--text);font-size:11px;padding:4px 8px;outline:none;font-family:inherit;}
+.date-filter input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.6);}
+.btn-filter{background:var(--hb);color:#fff;border:none;font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:500;}
+.filter-info{font-size:11px;color:var(--td);margin-left:auto;}
+
+/* DEMO BANNER */
+.demo-banner{background:#0a1e0a;border:1px solid #1a4a1a;border-radius:8px;padding:8px 14px;font-size:12px;color:#5ab878;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+/* MISC */
+.loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.4s;}
+.loader.hidden{opacity:0;pointer-events:none;}
+.spinner{width:32px;height:32px;border:3px solid var(--cb);border-top-color:var(--hb);border-radius:50%;animation:spin 0.8s linear infinite;}
+.ltext{margin-top:12px;font-size:12px;color:var(--tm);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.error-bar{background:#1e0008;border:1px solid var(--hr);border-radius:6px;padding:8px 12px;font-size:12px;color:#e87a8a;margin-bottom:12px;display:none;}
+
+@media(max-width:900px){.dept-grid{grid-template-columns:repeat(2,1fr);}.kpi-row{grid-template-columns:repeat(2,1fr);}.emp-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.dept-grid,.mid-grid,.emp-grid{grid-template-columns:1fr;}.main-wrap,.detail-wrap{padding:14px;}}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader"><div class="spinner"></div><div class="ltext" id="loader-text" data-de="Wird geladen…" data-en="Loading…">Wird geladen…</div></div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none;">
+  <div class="login-screen">
+    <div>
+      <div class="login-logo">HASY<span>TEC</span></div>
+      <div class="login-sub">Ultrasonic Tech GmbH · KPI Portal</div>
+    </div>
+    <div class="login-card">
+      <div class="login-card-title" data-de="KPI Portal" data-en="KPI Portal">KPI Portal</div>
+      <div class="login-card-sub" data-de="Mit HASYTEC-Konto anmelden" data-en="Sign in with your HASYTEC account">Mit HASYTEC-Konto anmelden</div>
+      <button class="btn-login" onclick="signIn()" data-de="🔐 Mit Microsoft anmelden" data-en="🔐 Sign in with Microsoft">🔐 Mit Microsoft anmelden</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none;">
+  <div class="tb-brand">
+    <div class="tb-logo">HASY<span>TEC</span></div>
+    <div class="tb-div"></div>
+    <div class="tb-title" data-de="KPI Portal · Ultrasonic Tech GmbH" data-en="KPI Portal · Ultrasonic Tech GmbH">KPI Portal · Ultrasonic Tech GmbH</div>
+  </div>
+  <div class="tb-right">
+    <span id="last-update" style="font-size:11px;color:var(--td)"></span>
+    <span class="badge-user" id="user-badge">–</span>
+    <span class="badge-live">● Live</span>
+    <button class="btn-lang" id="lang-de" onclick="setLang('de')" style="background:var(--hb);color:#fff;border-color:var(--hb)">DE</button>
+    <button class="btn-lang" id="lang-en" onclick="setLang('en')">EN</button>
+    <button class="btn-logout" onclick="signOut()" data-de="Abmelden" data-en="Sign out">Abmelden</button>
+  </div>
+</div>
+
+<!-- MAIN PAGE -->
+<div id="main-page" style="display:none;">
+<div class="main-wrap">
+  <div class="main-header">
+    <div class="main-title" data-de="Abteilungsübersicht — KPI Score" data-en="Department Overview — KPI Score">Abteilungsübersicht — KPI Score</div>
+    <div class="main-sub" data-de="Klicke auf eine Abteilung für Details" data-en="Click on a department for details">Klicke auf eine Abteilung für Details</div>
+  </div>
+  <div class="dept-grid" id="dept-grid"></div>
+</div>
+</div>
+
+<!-- DETAIL PAGE -->
+<div id="detail-page" style="display:none;">
+<div class="detail-wrap">
+  <div class="detail-header">
+    <button class="btn-back" onclick="showMain()">← <span data-de="Übersicht" data-en="Overview">Übersicht</span></button>
+    <div class="detail-icon" id="detail-icon">🖥</div>
+    <div>
+      <div class="detail-title" id="detail-title">IT Support</div>
+      <div class="detail-sub" id="detail-sub">Ultrasonic Tech GmbH</div>
+    </div>
+  </div>
+  <div id="detail-content"></div>
+</div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+var CLIENT_ID='62e2a3d5-c767-4071-918d-e681400f82a1';
+var TENANT_ID='eb63a598-5c86-4c50-9efa-8e8831a62ba2';
+var SITE='https://hasytecag.sharepoint.com/sites/HITS';
+var LIST_ID='42919689-29ab-4834-8034-70ac167a396d';
+var SCOPES=['https://hasytecag.sharepoint.com/AllSites.Read'];
+var lang='de';
+var allTickets=[];
+var schulungen=parseInt(localStorage.getItem('hits_sch')||'18');
+var patchPct=parseInt(localStorage.getItem('hits_pc')||'97');
+
+// ── TRANSLATIONS ─────────────────────────────────────────────────────────────
+var T={
+  de:{
+    frt:'First Response Time',rt:'Resolution Time',pc:'Patch Compliance',sch:'Schulungen',
+    tickets_status:'Tickets nach Status',tickets_prio:'Tickets nach Priorität',
+    kpi_weighted:'KPI-Bewertung (gewichtet)',overall:'Overall Objective Achievement',
+    goal:'Ziel',employees:'Mitarbeiter',
+    new:'New',in_progress:'In Progress',waiting:'Waiting',resolved:'Resolved',
+    critical:'Critical',high:'High',medium:'Medium',low:'Low',
+    manual:'Manuell',training:'Schulungen abgeschlossen',
+    from:'Von',to:'Bis',apply:'Anwenden',all:'Alle',
+    updated:'Aktualisiert',demo_note:'Demo-Daten — Echte Integration auf Anfrage verfügbar',
+    tasks_completed:'Aufgaben erledigt',code_quality:'Code-Qualität',sprint:'Sprint-Abschluss',
+    on_time:'Pünktlichkeit',customer_sat:'Kundenzufriedenheit',delivery:'Liefertreue',
+    accuracy:'Genauigkeit',response:'Reaktionszeit',productivity:'Produktivität',
+    compliance:'Compliance',invoices:'Rechnungen pünktlich',weight:'Gewicht'
+  },
+  en:{
+    frt:'First Response Time',rt:'Resolution Time',pc:'Patch Compliance',sch:'Training',
+    tickets_status:'Tickets by Status',tickets_prio:'Tickets by Priority',
+    kpi_weighted:'KPI Score (weighted)',overall:'Overall Objective Achievement',
+    goal:'Target',employees:'Employees',
+    new:'New',in_progress:'In Progress',waiting:'Waiting',resolved:'Resolved',
+    critical:'Critical',high:'High',medium:'Medium',low:'Low',
+    manual:'Manual',training:'Training completed',
+    from:'From',to:'To',apply:'Apply',all:'All',
+    updated:'Updated',demo_note:'Demo data — Real integration available on request',
+    tasks_completed:'Tasks completed',code_quality:'Code quality',sprint:'Sprint completion',
+    on_time:'On time',customer_sat:'Customer satisfaction',delivery:'On-time delivery',
+    accuracy:'Accuracy',response:'Response time',productivity:'Productivity',
+    compliance:'Compliance',invoices:'Invoices on time',weight:'Weight'
+  }
+};
+function t(k){return(T[lang]&&T[lang][k])||k;}
+function setLang(l){
+  lang=l;
+  document.getElementById('lang-de').style.background=l==='de'?'var(--hb)':'var(--card)';
+  document.getElementById('lang-de').style.color=l==='de'?'#fff':'var(--tm)';
+  document.getElementById('lang-de').style.borderColor=l==='de'?'var(--hb)':'var(--cb)';
+  document.getElementById('lang-en').style.background=l==='en'?'var(--hb)':'var(--card)';
+  document.getElementById('lang-en').style.color=l==='en'?'#fff':'var(--tm)';
+  document.getElementById('lang-en').style.borderColor=l==='en'?'var(--hb)':'var(--cb)';
+  document.querySelectorAll('[data-'+l+']').forEach(function(el){
+    el.textContent=el.getAttribute('data-'+l);
+  });
+  renderMainPage();
+}
+
+// ── DEPARTMENTS DATA ──────────────────────────────────────────────────────────
+var DEPTS=[
+  {id:'it',    icon:'🖥',  live:true,  employees:['Ravil Gottschalk','Robert Temme','Maria Koukoutsidi','Finn Fitschen','Andreas Ioannidis','Corinna Held','Torben Lamp']},
+  {id:'rnd',   icon:'🔬', live:false, employees:['Stefan Krause','Jana Müller','Dmitri Volkov','Sarah Chen','Marco Bianchi']},
+  {id:'prod',  icon:'⚙️', live:false, employees:['Hans Weber','Klaus Fischer','Petra Schmidt','Olga Petrov','Timo Braun']},
+  {id:'after', icon:'🔧', live:false, employees:['Elena Novak','Markus Lange','Yuki Tanaka','Lars Andersen','Sofia Rossi']},
+  {id:'pre',   icon:'📊', live:false, employees:['James Wilson','Isabelle Dupont','Carlos Rivera','Nadia Hassan','Tom Schulz']},
+  {id:'log',   icon:'📦', live:false, employees:['Pavel Novak','Anna Berger','Mohammed Al-Farsi','Lisa Park','René Dubois']},
+  {id:'svc',   icon:'🛠', live:false, employees:['Michael Koch','Fatima Benali','Pieter van Dam','Hana Kovac','Oliver Mayer']},
+  {id:'acc',   icon:'💼', live:false, employees:['Christine Wolf','Andrei Popescu','Yuki Sato','Frank Herrmann','Marta Kowalski']}
+];
+
+var DEPT_NAMES={
+  de:{it:'IT Support',rnd:'R&D',prod:'Produktion',after:'Aftersales',pre:'Presales',log:'Logistik',svc:'Service',acc:'Buchhaltung'},
+  en:{it:'IT Support',rnd:'R&D',prod:'Production',after:'Aftersales',pre:'Presales',log:'Logistics',svc:'Service',acc:'Accounting'}
+};
+
+// Demo scores per dept
+var DEMO_SCORES={
+  rnd:0.85, prod:0.78, after:0.90, pre:0.88, log:0.72, svc:0.82, acc:0.95
+};
+
+// ── MSAL ─────────────────────────────────────────────────────────────────────
+var msalInstance=new msal.PublicClientApplication({
+  auth:{clientId:CLIENT_ID,authority:'https://login.microsoftonline.com/'+TENANT_ID,redirectUri:window.location.origin+window.location.pathname},
+  cache:{cacheLocation:'sessionStorage'}
+});
+function signIn(){msalInstance.loginPopup({scopes:SCOPES}).then(function(r){startPortal(r.account);}).catch(function(e){alert(e.message);});}
+function signOut(){msalInstance.logoutPopup();}
+async function getToken(){
+  var a=msalInstance.getAllAccounts();
+  if(!a.length)throw new Error('Not logged in');
+  try{var r=await msalInstance.acquireTokenSilent({scopes:SCOPES,account:a[0]});return r.accessToken;}
+  catch(e){var r=await msalInstance.acquireTokenPopup({scopes:SCOPES});return r.accessToken;}
+}
+
+msalInstance.initialize().then(function(){
+  return msalInstance.handleRedirectPromise();
+}).then(function(){
+  var a=msalInstance.getAllAccounts();
+  if(a.length>0){startPortal(a[0]);}
+  else{document.getElementById('loader').classList.add('hidden');document.getElementById('login-screen').style.display='block';}
+}).catch(function(e){
+  document.getElementById('loader').classList.add('hidden');
+  document.getElementById('login-screen').style.display='block';
+});
+
+function startPortal(account){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('user-badge').textContent='👤 '+(account.name||account.username);
+  document.getElementById('sch-slider')&&(document.getElementById('sch-slider').value=schulungen);
+  loadITData();
+  setInterval(loadITData,5*60*1000);
+}
+
+// ── IT DATA ───────────────────────────────────────────────────────────────────
+async function loadITData(){
+  try{
+    var token=await getToken();
+    var r=await fetch(SITE+'/_api/lists/getbyid(\''+LIST_ID+'\')/items?$select=field_5,field_8,field_13,field_14,field_9&$top=5000',
+      {headers:{'Accept':'application/json;odata=nometadata','Authorization':'Bearer '+token}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var d=await r.json();
+    allTickets=d.value||[];
+    document.getElementById('last-update').textContent=t('updated')+': '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr';
+    document.getElementById('loader').classList.add('hidden');
+    renderMainPage();
+    showMain();
+  }catch(e){
+    document.getElementById('loader').classList.add('hidden');
+    renderMainPage();
+    showMain();
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function median(arr){
+  var f=arr.filter(function(x){return x>0&&x<=2880;}).sort(function(a,b){return a-b;});
+  if(!f.length)return null;
+  var m=Math.floor(f.length/2);
+  return f.length%2?f[m]:(f[m-1]+f[m])/2;
+}
+function fmtTime(h){
+  if(h===null||h===undefined)return'–';
+  var m=Math.round(h*60);
+  if(m<60)return m+' Min';
+  var hh=Math.floor(m/60),mm=m%60;
+  return mm>0?(hh+' Std '+mm+' Min'):(hh+' Std');
+}
+function calcITScore(items){
+  var frtMin=median(items.map(function(i){return i.field_13;}).filter(Boolean));
+  var rtMin=median(items.map(function(i){return i.field_14;}).filter(Boolean));
+  var frtH=frtMin!=null?frtMin/60:null;
+  var rtH=rtMin!=null?rtMin/60:null;
+  var frtOk=frtH!=null&&frtH<=8;
+  var rtOk=rtH!=null&&rtH<=24;
+  var pcOk=patchPct>=95;
+  var trOk=schulungen>=18;
+  return{frtH:frtH,rtH:rtH,frtOk:frtOk,rtOk:rtOk,pcOk:pcOk,trOk:trOk,
+    score:(frtOk?0.2:0)+(rtOk?0.3:0)+(pcOk?0.3:0)+(trOk?0.2:0)};
+}
+function scoreClass(s){return s>=0.9?'ok':s>=0.7?'warn':'bad';}
+function scoreCardClass(s){return s>=0.9?'score-ok':s>=0.7?'score-warn':'score-bad';}
+
+// ── MAIN PAGE ─────────────────────────────────────────────────────────────────
+function renderMainPage(){
+  var grid=document.getElementById('dept-grid');
+  if(!grid)return;
+  var itCalc=calcITScore(allTickets);
+  var html='';
+  DEPTS.forEach(function(d){
+    var name=DEPT_NAMES[lang][d.id];
+    var score=d.live?itCalc.score:DEMO_SCORES[d.id];
+    var sc=scoreClass(score);
+    var pct=Math.round(score*100);
+    var barColor=sc==='ok'?'var(--green)':sc==='warn'?'var(--amber)':'var(--red)';
+    html+='<div class="dept-card '+scoreCardClass(score)+'" onclick="showDept(\''+d.id+'\')">';
+    html+='<div class="'+(d.live?'dept-badge-live':'dept-badge-demo')+'">'+(d.live?'● Live':'Demo')+'</div>';
+    html+='<div class="dept-icon">'+d.icon+'</div>';
+    html+='<div class="dept-name">'+name+'</div>';
+    html+='<div class="dept-sub">'+d.employees.length+' '+t('employees')+'</div>';
+    html+='<div class="dept-score-wrap"><span class="dept-score '+sc+'">'+score.toFixed(2).replace('.',',')+'</span><span class="dept-score-max"> / 1,00</span></div>';
+    html+='<div class="dept-bar-track"><div class="dept-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>';
+    html+='<div class="dept-employees">Overall Objective Achievement</div>';
+    html+='</div>';
+  });
+  grid.innerHTML=html;
+  document.getElementById('main-page').style.display='block';
+}
+
+function showMain(){
+  document.getElementById('main-page').style.display='block';
+  document.getElementById('detail-page').style.display='none';
+  renderMainPage();
+}
+
+// ── DEPT DETAIL ───────────────────────────────────────────────────────────────
+function showDept(id){
+  document.getElementById('main-page').style.display='none';
+  document.getElementById('detail-page').style.display='block';
+  var d=DEPTS.find(function(x){return x.id===id;});
+  document.getElementById('detail-icon').textContent=d.icon;
+  document.getElementById('detail-title').textContent=DEPT_NAMES[lang][id];
+  document.getElementById('detail-sub').textContent='Ultrasonic Tech GmbH'+(d.live?' · Live':'· Demo');
+  if(id==='it'){renderITDetail();}
+  else{renderDemoDetail(id,d);}
+}
+
+// ── IT DETAIL (REAL) ─────────────────────────────────────────────────────────
+function renderITDetail(){
+  var df=document.getElementById('it-date-from')&&document.getElementById('it-date-from').value||'';
+  var dt=document.getElementById('it-date-to')&&document.getElementById('it-date-to').value||'';
+  var items=allTickets.filter(function(i){
+    if(!i.field_9)return true;
+    var d=new Date(i.field_9);
+    if(df&&d<new Date(df+'T00:00:00'))return false;
+    if(dt&&d>new Date(dt+'T23:59:59'))return false;
+    return true;
+  });
+  var c=calcITScore(items);
+  var s={New:0,'In Progress':0,Waiting:0,Resolved:0};
+  var p={Critical:0,High:0,Medium:0,Low:0};
+  items.forEach(function(i){if(i.field_8 in s)s[i.field_8]++;if(i.field_5 in p)p[i.field_5]++;});
+  var ts=items.length||1,tp=Object.values(p).reduce(function(a,b){return a+b;},0)||1;
+
+  var today=new Date(),ago=new Date();ago.setDate(ago.getDate()-30);
+  var defFrom=ago.toISOString().split('T')[0];
+  var defTo=today.toISOString().split('T')[0];
+
+  function hb(id,v,tot,col){return '<div class="hbar-f" id="'+id+'" style="width:'+Math.max(v>0?8:0,Math.min(100,v/tot*100)).toFixed(0)+'%;background:'+col+'">'+v+'</div>';}
+  function sc2(ok,score){return '<span class="sc-r '+(ok?'ok':'warn')+'">'+(ok?'✓ ':'⚠ ')+score.toFixed(2).replace('.',',')+'</span>';}
+
+  var frtS=c.frtOk?0.20:0,rtS=c.rtOk?0.30:0,pcS=c.pcOk?0.30:0,trS=c.trOk?0.20:0;
+  var tot=frtS+rtS+pcS+trS;
+
+  var html='';
+  // Date filter
+  html+='<div class="date-filter">';
+  html+='<label>'+t('from')+'</label><input type="date" id="it-date-from" value="'+defFrom+'" style="background:var(--bt);border:1px solid var(--cb);border-radius:5px;color:var(--text);font-size:11px;padding:4px 8px;outline:none;font-family:inherit;">';
+  html+='<label>'+t('to')+'</label><input type="date" id="it-date-to" value="'+defTo+'" style="background:var(--bt);border:1px solid var(--cb);border-radius:5px;color:var(--text);font-size:11px;padding:4px 8px;outline:none;font-family:inherit;">';
+  html+='<button class="btn-filter" onclick="renderITDetail()">'+t('apply')+'</button>';
+  html+='<button class="btn-filter" style="background:var(--cb)" onclick="document.getElementById(\'it-date-from\').value=\'\';document.getElementById(\'it-date-to\').value=\'\';renderITDetail()">'+t('all')+'</button>';
+  html+='<span class="filter-info">'+items.length+' Tickets</span></div>';
+
+  // KPI Cards
+  html+='<div class="kpi-row">';
+  html+='<div class="kpi-card '+(c.frtH==null?'':(c.frtOk?'ok':'warn'))+'"><div class="kpi-lbl">'+t('frt')+'</div><div class="kpi-val">'+fmtTime(c.frtH)+'</div><div class="kpi-tgt '+(c.frtOk?'ok':'warn')+'">'+(c.frtOk?'✓':'⚠')+' '+t('goal')+': ≤ 8 Std</div><div class="bar-t"><div class="bar-f" style="width:'+(c.frtH!=null?Math.min(100,c.frtH/8*100).toFixed(0):0)+'%;background:'+(c.frtOk?'var(--green)':'var(--hr)')+'"></div></div></div>';
+  html+='<div class="kpi-card '+(c.rtH==null?'':(c.rtOk?'ok':'warn'))+'"><div class="kpi-lbl">'+t('rt')+'</div><div class="kpi-val">'+fmtTime(c.rtH)+'</div><div class="kpi-tgt '+(c.rtOk?'ok':'warn')+'">'+(c.rtOk?'✓':'⚠')+' '+t('goal')+': ≤ 24 Std</div><div class="bar-t"><div class="bar-f" style="width:'+(c.rtH!=null?Math.min(100,c.rtH/24*100).toFixed(0):0)+'%;background:'+(c.rtOk?'var(--green)':'var(--hr)')+'"></div></div></div>';
+  html+='<div class="kpi-card '+(c.pcOk?'ok':'warn')+'"><div class="kpi-lbl">'+t('pc')+'</div><div class="kpi-val">'+patchPct+' %</div><div class="kpi-tgt '+(c.pcOk?'ok':'warn')+'">'+(c.pcOk?'✓':'⚠')+' '+t('goal')+': ≥ 95%</div><div class="bar-t"><div class="bar-f" style="width:'+patchPct+'%;background:'+(c.pcOk?'var(--green)':'var(--hr)')+'"></div></div><div style="display:flex;align-items:center;gap:6px;margin-top:8px;"><label style="font-size:10px;color:var(--tm)">'+t('manual')+':</label><input type="number" min="0" max="100" value="'+patchPct+'" onchange="patchPct=parseInt(this.value)||0;localStorage.setItem(\'hits_pc\',patchPct);renderITDetail();" style="width:50px;background:var(--bt);border:1px solid var(--cb);border-radius:4px;color:var(--text);font-size:11px;padding:2px 6px;outline:none;font-family:inherit;"> %</div></div>';
+  html+='<div class="kpi-card '+(c.trOk?'ok':'warn')+'"><div class="kpi-lbl">'+t('sch')+'</div>';
+  // Mini gauge
+  html+='<div style="text-align:center;margin:4px 0"><svg width="120" height="66" viewBox="0 0 200 110"><path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#001830" stroke-width="14" stroke-linecap="round"/><path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="'+(c.trOk?'#5ab878':'#a32d2d')+'" stroke-width="14" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="'+(251.2*(1-schulungen/18)).toFixed(1)+'"/><line x1="100" y1="100" x2="100" y2="30" stroke="#e8eef6" stroke-width="2" stroke-linecap="round" transform="rotate('+((-90+schulungen/18*180).toFixed(1))+',100,100)"/><circle cx="100" cy="100" r="4" fill="#e8eef6"/></svg>';
+  html+='<div style="font-size:18px;font-weight:300;">'+schulungen+' / 18</div></div>';
+  html+='<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:6px;"><label style="font-size:10px;color:var(--tm)">'+t('training')+':</label><input type="range" min="0" max="18" value="'+schulungen+'" oninput="schulungen=parseInt(this.value);localStorage.setItem(\'hits_sch\',schulungen);renderITDetail();" style="-webkit-appearance:none;width:90px;height:3px;background:var(--bt);border-radius:2px;outline:none;" /><span style="font-size:11px;font-weight:500;">'+schulungen+'/18</span></div>';
+  html+='</div></div>';
+
+  // Charts
+  html+='<div class="mid-grid">';
+  html+='<div class="card"><div class="card-title">'+t('tickets_status')+'</div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('new')+'</span><div class="hbar-t">'+hb('',s['New'],ts,'#d4a038')+'</div></div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('in_progress')+'</span><div class="hbar-t">'+hb('',s['In Progress'],ts,'#7a9ab8')+'</div></div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('waiting')+'</span><div class="hbar-t">'+hb('',s['Waiting'],ts,'#1a6abf')+'</div></div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('resolved')+'</span><div class="hbar-t">'+hb('',s['Resolved'],ts,'#5ab878')+'</div></div>';
+  html+='</div>';
+
+  html+='<div class="card"><div class="card-title">'+t('tickets_prio')+'</div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('critical')+'</span><div class="hbar-t">'+hb('',p['Critical'],tp,'#a32d2d')+'</div></div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('high')+'</span><div class="hbar-t">'+hb('',p['High'],tp,'#d4a038')+'</div></div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('medium')+'</span><div class="hbar-t">'+hb('',p['Medium'],tp,'#3a8a5a')+'</div></div>';
+  html+='<div class="hbar-row"><span class="hbar-lbl">'+t('low')+'</span><div class="hbar-t">'+hb('',p['Low'],tp,'#1a4a8a')+'</div></div>';
+  html+='</div></div>';
+
+  // Scorecard
+  html+='<div class="card"><div class="card-title">'+t('kpi_weighted')+'</div>';
+  html+='<div class="scorecard-row"><span class="sc-name">'+t('frt')+' (Median ≤ 8h)</span><span class="sc-w">'+t('weight')+' 0,2</span>'+sc2(c.frtOk,frtS)+'</div>';
+  html+='<div class="scorecard-row"><span class="sc-name">'+t('rt')+' (Median ≤ 24h)</span><span class="sc-w">'+t('weight')+' 0,3</span>'+sc2(c.rtOk,rtS)+'</div>';
+  html+='<div class="scorecard-row"><span class="sc-name">'+t('pc')+' (≥ 95%)</span><span class="sc-w">'+t('weight')+' 0,3</span>'+sc2(c.pcOk,pcS)+'</div>';
+  html+='<div class="scorecard-row"><span class="sc-name">'+t('sch')+'</span><span class="sc-w">'+t('weight')+' 0,2</span>'+sc2(c.trOk,trS)+'</div>';
+  html+='<div class="total-row"><span class="total-lbl">'+t('overall')+'</span><span><span class="total-val '+(tot>=0.8?'ok':'warn')+'">'+tot.toFixed(2).replace('.',',')+'</span><span class="total-max"> / 1,00</span></span></div></div>';
+
+  // Employees
+  html+=renderITEmployees();
+  document.getElementById('detail-content').innerHTML=html;
+}
+
+function renderITEmployees(){
+  var employees=[
+    {name:'Ravil Gottschalk',role:lang==='de'?'IT-Manager':'IT Manager',frt:'0 Std 27 Min',rt:'4 Std 12 Min',schulungen:18,score:1.00},
+    {name:'Robert Temme',role:lang==='de'?'IT-Support':'IT Support',frt:'1 Std 5 Min',rt:'8 Std 30 Min',schulungen:16,score:0.80},
+    {name:'Maria Koukoutsidi',role:lang==='de'?'IT-Koordinatorin':'IT Coordinator',frt:'2 Std 15 Min',rt:'12 Std 0 Min',schulungen:18,score:0.90},
+    {name:'Finn Fitschen',role:lang==='de'?'IT-Techniker':'IT Technician',frt:'1 Std 4 Min',rt:'27 Std 15 Min',schulungen:17,score:0.70},
+    {name:'Andreas Ioannidis',role:lang==='de'?'IT-Spezialist':'IT Specialist',frt:'2 Std 36 Min',rt:'4 Std 58 Min',schulungen:18,score:0.80},
+    {name:'Corinna Held',role:lang==='de'?'IT-Beraterin':'IT Consultant',frt:'0 Std 45 Min',rt:'6 Std 20 Min',schulungen:18,score:1.00},
+    {name:'Torben Lamp',role:lang==='de'?'IT-Infrastruktur':'IT Infrastructure',frt:'3 Std 10 Min',rt:'10 Std 0 Min',schulungen:15,score:0.70}
+  ];
+  var html='<div class="emp-section"><div class="emp-title">'+t('employees')+'</div><div class="emp-grid">';
+  employees.forEach(function(e){
+    var sc=scoreClass(e.score);
+    html+='<div class="emp-card">';
+    html+='<div class="emp-name">'+e.name+'</div>';
+    html+='<div class="emp-role">'+e.role+'</div>';
+    html+='<div class="emp-kpi-row"><span class="emp-kpi-lbl">'+t('frt')+'</span><span class="emp-kpi-val ok">'+e.frt+'</span></div>';
+    html+='<div class="emp-kpi-row"><span class="emp-kpi-lbl">'+t('rt')+'</span><span class="emp-kpi-val '+(parseFloat(e.rt)<=24?'ok':'warn')+'">'+e.rt+'</span></div>';
+    html+='<div class="emp-kpi-row"><span class="emp-kpi-lbl">'+t('sch')+'</span><span class="emp-kpi-val '+(e.schulungen>=18?'ok':'warn')+'">'+e.schulungen+'/18</span></div>';
+    html+='<div class="emp-score"><span class="emp-score-lbl">Score</span><span class="emp-score-val '+sc+'">'+e.score.toFixed(2).replace('.',',')+'</span></div>';
+    html+='</div>';
+  });
+  html+='</div></div>';
+  return html;
+}
+
+// ── DEMO DETAIL ───────────────────────────────────────────────────────────────
+var DEMO_KPI={
+  rnd:{kpis:[{k:'tasks_completed',v:'87%',ok:true,tgt:'≥ 80%'},{k:'code_quality',v:'92%',ok:true,tgt:'≥ 85%'},{k:'sprint',v:'78%',ok:false,tgt:'≥ 80%'},{k:'sch',v:'16/18',ok:false,tgt:'18/18'}],score:0.85},
+  prod:{kpis:[{k:'on_time',v:'76%',ok:false,tgt:'≥ 85%'},{k:'productivity',v:'88%',ok:true,tgt:'≥ 80%'},{k:'compliance',v:'95%',ok:true,tgt:'≥ 95%'},{k:'sch',v:'18/18',ok:true,tgt:'18/18'}],score:0.78},
+  after:{kpis:[{k:'customer_sat',v:'4.6/5',ok:true,tgt:'≥ 4.0'},{k:'response',v:'2 Std',ok:true,tgt:'≤ 4h'},{k:'on_time',v:'91%',ok:true,tgt:'≥ 85%'},{k:'sch',v:'18/18',ok:true,tgt:'18/18'}],score:0.90},
+  pre:{kpis:[{k:'customer_sat',v:'4.4/5',ok:true,tgt:'≥ 4.0'},{k:'on_time',v:'89%',ok:true,tgt:'≥ 85%'},{k:'productivity',v:'82%',ok:true,tgt:'≥ 80%'},{k:'sch',v:'17/18',ok:false,tgt:'18/18'}],score:0.88},
+  log:{kpis:[{k:'delivery',v:'71%',ok:false,tgt:'≥ 90%'},{k:'accuracy',v:'94%',ok:false,tgt:'≥ 95%'},{k:'on_time',v:'80%',ok:false,tgt:'≥ 85%'},{k:'sch',v:'18/18',ok:true,tgt:'18/18'}],score:0.72},
+  svc:{kpis:[{k:'customer_sat',v:'4.2/5',ok:true,tgt:'≥ 4.0'},{k:'response',v:'3 Std',ok:true,tgt:'≤ 4h'},{k:'on_time',v:'86%',ok:true,tgt:'≥ 85%'},{k:'sch',v:'16/18',ok:false,tgt:'18/18'}],score:0.82},
+  acc:{kpis:[{k:'invoices',v:'98%',ok:true,tgt:'≥ 95%'},{k:'accuracy',v:'99%',ok:true,tgt:'≥ 98%'},{k:'compliance',v:'100%',ok:true,tgt:'100%'},{k:'sch',v:'18/18',ok:true,tgt:'18/18'}],score:0.95}
+};
+
+var DEMO_EMP_ROLES={
+  rnd:{de:['Senior Developer','Data Scientist','R&D Engineer','ML Engineer','Product Researcher'],en:['Senior Developer','Data Scientist','R&D Engineer','ML Engineer','Product Researcher']},
+  prod:{de:['Produktionsleiter','Maschinenführer','Qualitätsprüfer','Techniker','Schichtleiter'],en:['Production Manager','Machine Operator','Quality Inspector','Technician','Shift Leader']},
+  after:{de:['Service Manager','Kundenbetreuer','Techniker','Support Spezialist','Field Engineer'],en:['Service Manager','Account Manager','Technician','Support Specialist','Field Engineer']},
+  pre:{de:['Sales Manager','Account Executive','Sales Engineer','Business Developer','Sales Analyst'],en:['Sales Manager','Account Executive','Sales Engineer','Business Developer','Sales Analyst']},
+  log:{de:['Logistikleiter','Lagerverwalter','Disponent','Zollspezialist','Transport Manager'],en:['Logistics Manager','Warehouse Manager','Dispatcher','Customs Specialist','Transport Manager']},
+  svc:{de:['Service Manager','Servicetechniker','Kundenbetreuer','Field Engineer','Support Lead'],en:['Service Manager','Service Technician','Account Manager','Field Engineer','Support Lead']},
+  acc:{de:['Buchhalter','Controller','Finanzspezialist','Steuerbuchhalter','Payroll Manager'],en:['Accountant','Controller','Finance Specialist','Tax Accountant','Payroll Manager']}
+};
+
+function renderDemoDetail(id,dept){
+  var data=DEMO_KPI[id];
+  var sc=scoreClass(data.score);
+  var wPerKPI=1/data.kpis.length;
+
+  var html='<div class="demo-banner">ℹ️ '+t('demo_note')+'</div>';
+
+  // KPI Cards
+  html+='<div class="kpi-row">';
+  data.kpis.forEach(function(kpi){
+    var cls=kpi.ok?'ok':'warn';
+    html+='<div class="kpi-card '+cls+'"><div class="kpi-lbl">'+t(kpi.k)+'</div><div class="kpi-val">'+kpi.v+'</div>';
+    html+='<div class="kpi-tgt '+cls+'">'+(kpi.ok?'✓':'⚠')+' '+t('goal')+': '+kpi.tgt+'</div>';
+    html+='<div class="bar-t"><div class="bar-f" style="width:'+(kpi.ok?'85':'55')+'%;background:'+(kpi.ok?'var(--green)':'var(--hr)')+'"></div></div></div>';
+  });
+  html+='</div>';
+
+  // Scorecard
+  html+='<div class="card" style="margin-bottom:14px;"><div class="card-title">'+t('kpi_weighted')+'</div>';
+  data.kpis.forEach(function(kpi){
+    var s=kpi.ok?wPerKPI:0;
+    html+='<div class="scorecard-row"><span class="sc-name">'+t(kpi.k)+'</span><span class="sc-w">'+t('weight')+' '+wPerKPI.toFixed(2).replace('.',',')+'</span><span class="sc-r '+(kpi.ok?'ok':'warn')+'">'+(kpi.ok?'✓ ':'⚠ ')+s.toFixed(2).replace('.',',')+'</span></div>';
+  });
+  html+='<div class="total-row"><span class="total-lbl">'+t('overall')+'</span><span><span class="total-val '+sc+'">'+data.score.toFixed(2).replace('.',',')+'</span><span class="total-max"> / 1,00</span></span></div></div>';
+
+  // Employees
+  var roles=DEMO_EMP_ROLES[id][lang];
+  html+='<div class="emp-section"><div class="emp-title">'+t('employees')+'</div><div class="emp-grid">';
+  dept.employees.forEach(function(name,i){
+    var empScore=(Math.random()*0.4+0.6).toFixed(2);
+    var empSc=scoreClass(parseFloat(empScore));
+    var schVal=Math.floor(Math.random()*3)+16;
+    html+='<div class="emp-card">';
+    html+='<div class="emp-name">'+name+'</div>';
+    html+='<div class="emp-role">'+(roles[i]||roles[0])+'</div>';
+    data.kpis.forEach(function(kpi){
+      var v=kpi.ok?'✓ '+kpi.v:'⚠ '+kpi.v;
+      var vc=kpi.ok?'ok':'warn';
+      html+='<div class="emp-kpi-row"><span class="emp-kpi-lbl">'+t(kpi.k)+'</span><span class="emp-kpi-val '+vc+'">'+kpi.v+'</span></div>';
+    });
+    html+='<div class="emp-score"><span class="emp-score-lbl">Score</span><span class="emp-score-val '+empSc+'">'+empScore.replace('.',',')+'</span></div>';
+    html+='</div>';
+  });
+  html+='</div></div>';
+
+  document.getElementById('detail-content').innerHTML=html;
+}
+</script>
+</body>
+</html>
